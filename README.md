@@ -133,6 +133,16 @@ After Round 3, the final memories are fused together and passed to the classific
 ### Fine Stream Dropout (Training Trick)
 During training, 50% of the time, the fine stream is **intentionally blinded** — it receives a blurred image instead of a sharp one. This forces the model to not rely entirely on perfect fine details. It must learn to extract information from the coarse stream alone, making the whole system more robust.
 
+### Fine Stream Training Augmentation
+During normal training (when dropout is not active), the fine stream receives a heavily augmented version of the image to prevent overfitting and improve generalization:
+
+- **RandomResizedCrop** — randomly zooms in on 80–100% of the image and crops to 224×224, forcing the model to recognize objects at different scales
+- **RandomHorizontalFlip** — mirrors the image 50% of the time, since a car facing left is still a car facing right
+- **RandomApply GaussianBlur (p=0.5)** — applies a mild, random camera-style blur 50% of the time with variable kernel size (5–9) and sigma (0.1–2.0). This is intentionally light and is completely separate from the structural blur (radius=3) used to split the coarse stream — one is a training regularization trick, the other is the biological simulation
+- **ColorJitter** — randomly shifts brightness and contrast by ±20%, simulating different lighting conditions
+
+The coarse stream does not receive any augmentation. It always gets the same heavy structural blur (radius=3) + grayscale — its input is deterministic by design because it simulates a fixed biological property of peripheral vision, not a learned behavior.
+
 ### Auxiliary Loss
 The coarse stream has its own separate classification head (`coarse_aux_head`). During training, the total loss is: loss = CrossEntropy(main_output, y) + 0.4 × CrossEntropy(coarse_output, y). 
 This 40% auxiliary penalty forces the coarse stream to actually learn useful features rather than becoming a passive passenger that lets the fine stream do all the work.
@@ -147,6 +157,7 @@ Two custom signal processing transforms are used to create distinct test conditi
 ---
 
 ## Results: Mechanistic Model
+> **Note on evaluation data:** The same 10,000 CIFAR-10 test images are used both for mid-training validation (every 2 epochs) and for the final stimulus condition tests. The best model checkpoint is selected based on performance on these images. In a production setting, a separate held-out test set would be used for final evaluation to prevent any indirect data leakage.
 
 ### Robustness Under Stimulus Conditions
 
