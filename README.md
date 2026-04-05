@@ -286,6 +286,24 @@ Computes gradients of the predicted class score with respect to the final convol
 
 ## Project Structure
 
+```text
+Dual-Stream-Mechanistic-Vision/
+├── src/                            # Source code
+│   ├── mech_model/                 # Mechanistic Model scripts
+│   │   ├── dual_branch_net.py      # Training script (Dual-Stream)
+│   │   └── validation.py           # Evaluation and visualization 
+│   └── baseline_model/             # ResNet50 Baseline scripts
+│       ├── resnet50_baseline.py    # Training script (Baseline)
+│       └── validation.py           # Evaluation and visualization
+├── results/                        # Generated output images
+│   └── comparison/
+│       ├── psychometric_curve_compare.jpg
+│       ├── confusion_matrix_compare.jpeg
+│       └── gradcam_mechanistic_compare.jpeg
+├── assets/                         # Individual model run outputs/diagrams
+├── models/                         # Saved PyTorch checkpoints (.pth files)
+└── README.md                       # Project documentation
+
 ---
 
 ## How to Run
