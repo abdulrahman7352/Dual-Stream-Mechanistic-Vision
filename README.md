@@ -162,9 +162,9 @@ Two custom signal processing transforms are used to create distinct test conditi
 
 | Condition | Accuracy | Description |
 |-----------|----------|-------------|
-| **Clear** | **89.73%** | Standard, unmodified images |
-| **Blur** | **67.43%** | Heavy Gaussian blur (radius=3) applied to fine stream |
-| **Sharp** | **74.62%** | FFT high-pass filter — edges only |
+| **Clear** | **90.08%** | Standard, unmodified images |
+| **Blur** | **67.24%** | Heavy Gaussian blur (radius=3) applied to fine stream |
+| **Sharp** | **77.32%** | FFT high-pass filter — edges only |
 
 ### Per-Class Classification Report (Blur Condition, Radius=3)
 
