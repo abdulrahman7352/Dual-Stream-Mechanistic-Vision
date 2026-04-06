@@ -32,7 +32,7 @@ def get_baseline_preds(model, loader, device):
     return all_labels, all_preds
 
 # ------------------------------------------------------------
-# 2. Run the Validations (Combined Curve & Baseline CM)
+# 2. Run the Validations (Baseline CM)
 # ------------------------------------------------------------
 # Make sure we use the correct weights filename that your script just saved
 print("\n" + "="*60)
@@ -45,13 +45,11 @@ model.eval()
 
 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-# --- TEST A: COMBINED PSYCHOMETRIC CURVE ---
+# --- TEST A:PSYCHOMETRIC CURVE ---
 print("\n--- Generating Combined Psychometric Curve ---")
 blur_radii = [1, 2, 3, 4, 5, 6, 7, 8]
 baseline_accuracies = []
 
-# Hardcoded results from your previous Mechanistic Model run!
-mech_accuracies = [0.7632, 0.6573, 0.6450, 0.5178, 0.3777, 0.2969, 0.2650, 0.2435]
 
 for r in blur_radii:
     test_dataset = DynamicBaselineBlurDataset(test_data.data, test_data.targets, tf_test, blur_radius=r)
@@ -62,19 +60,18 @@ for r in blur_radii:
     baseline_accuracies.append(acc)
     print(f"Baseline Blur Radius {r}: Accuracy = {acc:.4f}")
 
-# Plotting Both Curves Together
+# Plotting Curve
 plt.figure(figsize=(8, 5))
-plt.plot(blur_radii, mech_accuracies, marker='o', linestyle='-', color='blue', label='Mechanistic Model (Dual-Stream)')
 plt.plot(blur_radii, baseline_accuracies, marker='X', linestyle='--', color='red', label='Baseline (Standard ResNet50)')
 
-plt.title('Psychometric Degradation: Mechanistic vs Baseline')
+plt.title('Psychometric Degradation: Baseline')
 plt.xlabel('Gaussian Blur Radius')
 plt.ylabel('Accuracy')
 plt.ylim(0, 1.0)
 plt.grid(True)
 plt.legend()
-plt.savefig('combined_psychometric_curve.png')
-print("-> Saved 'combined_psychometric_curve.png'")
+plt.savefig('psychometric_curve_baseline.png')
+print("-> Saved 'psychometric_curve_baseline.png'")
 plt.show()
 
 # --- TEST B: BASELINE CONFUSION MATRIX (At Blur=3) ---
