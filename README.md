@@ -166,23 +166,55 @@ Two custom signal processing transforms are used to create distinct test conditi
 | **Blur** | **67.24%** | Heavy Gaussian blur (radius=3) applied to fine stream |
 | **Sharp** | **77.32%** | FFT high-pass filter — edges only |
 
-### Per-Class Classification Report (Blur Condition, Radius=3)
+## Per-Class Classification Report (Current Model Performance)
 
 | Class | Precision | Recall | F1-Score |
 |-------|-----------|--------|----------|
-| airplane | 0.74 | 0.67 | 0.71 |
-| automobile | 0.73 | 0.83 | 0.77 |
-| bird | 0.70 | 0.55 | 0.62 |
-| cat | 0.48 | 0.46 | 0.47 |
-| deer | 0.63 | 0.65 | 0.64 |
-| dog | 0.53 | 0.63 | 0.58 |
-| frog | 0.75 | 0.70 | 0.73 |
-| horse | 0.73 | 0.75 | 0.74 |
-| ship | 0.75 | 0.79 | 0.77 |
-| truck | 0.73 | 0.71 | 0.72 |
-| **Overall** | **0.68** | **0.67** | **0.67** |
+| airplane | 0.73 | 0.67 | 0.70 |
+| automobile | 0.81 | 0.70 | 0.75 |
+| bird | 0.63 | 0.59 | 0.61 |
+| cat | 0.50 | 0.42 | 0.46 |
+| deer | 0.62 | 0.65 | 0.64 |
+| dog | 0.56 | 0.61 | 0.58 |
+| frog | 0.66 | 0.81 | 0.73 |
+| horse | 0.80 | 0.71 | 0.75 |
+| ship | 0.72 | 0.83 | 0.77 |
+| truck | 0.71 | 0.72 | 0.71 |
 
-**Observation:** Even under heavy blur, the model maintains strong performance on vehicles (automobile F1=0.77, ship F1=0.77) whose global shapes survive blurring. The hardest class is `cat` (F1=0.47) — cats and dogs share similar blob shapes when blurred, which is a biologically realistic confusion that humans also make.
+---
+
+## Overall Performance
+
+- **Accuracy:** 0.67  
+- **Macro Avg (Precision / Recall / F1):** 0.67 / 0.67 / 0.67  
+- **Weighted Avg (Precision / Recall / F1):** 0.67 / 0.67 / 0.67  
+
+---
+
+## Observations
+
+- The model achieves **balanced overall performance (67% accuracy)** with consistent precision and recall across classes.
+
+- Strong performance is observed in **structurally distinct categories**:
+  - **ship (F1 = 0.77)**
+  - **automobile (F1 = 0.75)**
+  - **horse (F1 = 0.75)**  
+  → Indicates robustness in capturing **global shape features**.
+
+- **frog** shows **high recall (0.81)**, suggesting strong sensitivity to its visual patterns.
+
+- The most challenging classes are:
+  - **cat (F1 = 0.46)**
+  - **dog (F1 = 0.58)**  
+  → Likely due to **feature overlap and fine-grained similarity**, a common issue in both machine learning and human perception.
+
+---
+
+## Key Insight
+
+The model performs well on **coarse, shape-driven categories** but struggles with **fine-grained distinctions**, especially among visually similar animal classes.
+
+---
 
 ### Validation Images
 
