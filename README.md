@@ -157,7 +157,6 @@ Two custom signal processing transforms are used to create distinct test conditi
 ---
 
 ## Results: Mechanistic Model
-> **Note on evaluation data:** The same 10,000 CIFAR-10 test images are used both for mid-training validation (every 2 epochs) and for the final stimulus condition tests. The best model checkpoint is selected based on performance on these images. In a production setting, a separate held-out test set would be used for final evaluation to prevent any indirect data leakage.
 
 ### Robustness Under Stimulus Conditions
 
