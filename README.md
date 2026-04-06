@@ -282,7 +282,7 @@ The mechanistic model's coarse stream acts as exactly that fallback. Even when t
 
 ### Psychometric Degradation Curve Comparison
 
-![Psychometric Curve](results/comparison/psychometric_curve_compare.jpg)
+![Psychometric Curve](results/comparison/psychometric_curve_compare.jpeg)
 
 The blue curve (Mechanistic) degrades **gracefully** as blur increases — mirroring how human vision progressively loses accuracy under increasing visual noise. The red curve (Baseline) falls off a cliff at radius=2 and flatlines near random-chance performance.
 
