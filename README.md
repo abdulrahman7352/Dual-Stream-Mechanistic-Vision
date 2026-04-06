@@ -310,17 +310,55 @@ This result highlights a fundamental limitation of conventional CNNs:
 
 | Condition | Mechanistic Model | ResNet50 Baseline | Difference |
 |-----------|:-----------------:|:-----------------:|:----------:|
-| **Clear** | 89.73% | 95.04% | -5.31% |
-| **Blur** | **67.43%** | **15.25%** | **+52.18%** |
-| **Sharp** | 74.62% | 82.63% | -8.01% |
+| **Clear** | 90.08% | 94.72% | -4.64% |
+| **Blur** | **67.24%** | **17.87%** | **+49.37%** |
+| **Sharp** | 77.32% | 81.05% | -3.73% |
 
-### The Trade-off Explained
+---
 
-The mechanistic model sacrifices approximately **5% clean accuracy** in exchange for **52% blur robustness**. This is not a bug — it is the expected and scientifically sound result of a dual-stream architecture.
+## The Trade-off Explained
 
-On clear images, ResNet50 wins because it is a larger, more specialized single-stream model optimized for clean texture processing. On blurred images, it fails completely because it has no fallback — without sharp textures, it has nothing to work with.
+The mechanistic model sacrifices approximately **4–5% clean accuracy** in exchange for **~49% improvement in blur robustness**. This is not a limitation — it is a **deliberate and principled outcome** of the dual-stream architecture.
 
-The mechanistic model's coarse stream acts as exactly that fallback. Even when the fine stream is blinded by blur, the coarse stream's memory of the global shape structure keeps the prediction anchored. The 3-round predictive coding loop allows the model to reason about what it should be seeing, even when direct evidence is degraded.
+- On **clear images**, **ResNet50** performs better due to its **high-capacity, texture-optimized design**.
+- On **blurred images**, the baseline **collapses (17.87% accuracy)** because it relies heavily on **high-frequency texture cues** that are removed by blur.
+
+---
+
+## Why the Mechanistic Model Excels Under Degradation
+
+The mechanistic model is explicitly designed for robustness:
+
+- A **coarse stream** captures **low-frequency, global shape information**.
+- A **fine stream** processes detailed textures (which degrade under blur).
+- When the fine stream fails, the **coarse stream provides a stable fallback**, preventing collapse.
+
+---
+
+## Predictive Coding Advantage
+
+The model performs **3 rounds of predictive coding**, enabling:
+
+- Iterative refinement of predictions  
+- Integration of prior expectations with incoming signals  
+- Stable inference under degraded or incomplete inputs  
+
+This allows the model to **infer structure even when direct evidence is weak**.
+
+---
+
+## Key Insight
+
+> The mechanistic model trades a small drop in peak accuracy for a **massive gain in robustness**, closely aligning with principles observed in biological vision systems.
+
+- **CNNs (ResNet50):** High accuracy, brittle under distribution shift  
+- **Mechanistic Model:** Slightly lower peak, dramatically more resilient  
+
+---
+
+This demonstrates that **robust intelligence requires moving beyond purely feedforward, texture-dependent architectures**.
+
+---
 
 ### Psychometric Degradation Curve Comparison
 
