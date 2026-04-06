@@ -294,7 +294,7 @@ The mechanistic confusion matrix shows a strong diagonal (correct predictions) e
 
 ### Grad-CAM Comparison
 
-![Comparison](results/comparison/gradcam_mechanistic_compare.jpeg)
+![Comparison](results/comparison/gradcam_compare.jpeg)
 
 Grad-CAM visualizes **where the model is looking** when making a decision. Under blur:
 - **Mechanistic model:** Attention stays centered on the object's main mass. Even when the image is an unrecognizable blob, the fused layer heatmap correctly localizes the subject.
