@@ -155,11 +155,11 @@ def evaluate(model, loader, device):
 # ------------------------------------------------------------
 # MAIN
 # ------------------------------------------------------------
+
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"BASELINE: ResNet50 on {device}")
 
-    ### EDIT: Exact same Transforms as Mechanistic Model
     tf_train = T.Compose([
         T.Resize((224, 224)),
         T.RandomResizedCrop(224, scale=(0.8, 1.0)),
@@ -176,51 +176,63 @@ if __name__ == "__main__":
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    ### EDIT: Switched to CIFAR-10 and generated exact same 20k subset
     full_train_data = datasets.CIFAR10(root="./data", train=True, download=True)
     test_data = datasets.CIFAR10(root="./data", train=False, download=True)
 
-    subset_indices = torch.randperm(len(full_train_data))[:20000].tolist()
-    sub_data = full_train_data.data[subset_indices]
-    sub_targets = [full_train_data.targets[i] for i in subset_indices]
+    # --- NEW LEAK-FREE DATA SPLIT (Matches Mechanistic Model) ---
+    # Shuffle all 50,000 training indices
+    shuffled_indices = torch.randperm(len(full_train_data)).tolist()
 
-    train_set = BaselineDataset(sub_data, sub_targets, tf_train)
+    # Grab 20k for training, and the next 5k for validation
+    train_indices = shuffled_indices[:20000]
+    val_indices = shuffled_indices[20000:25000]
+
+    # Extract the actual images and labels based on indices
+    train_data = full_train_data.data[train_indices]
+    train_targets = [full_train_data.targets[i] for i in train_indices]
+
+    val_data = full_train_data.data[val_indices]
+    val_targets = [full_train_data.targets[i] for i in val_indices]
+
+    # Create Datasets
+    train_set = BaselineDataset(train_data, train_targets, tf_train)
+    val_set = BaselineDataset(val_data, val_targets, tf_test) # Validation uses clean test transforms
+
+    # Create DataLoaders
     train_loader = DataLoader(train_set, batch_size=32, shuffle=True, num_workers=2)
-
-    ### EDIT: Added a test loader for validation during training
-    test_set = BaselineDataset(test_data.data, test_data.targets, tf_test)
-    test_loader = DataLoader(test_set, batch_size=64, shuffle=False, num_workers=2)
+    val_loader = DataLoader(val_set, batch_size=64, shuffle=False, num_workers=2)
 
     model = get_baseline_model(num_classes=10).to(device)
 
     print("=== TRAINING BASELINE RESNET50 ===")
     best_acc = 0.0
 
-    ### EDIT: Matched Epoch count (30) and LR schedule from Mechanistic Model
     for epoch in range(1, 31):
         lr = 1e-4 if epoch <= 10 else 5e-5
         loss, train_acc = train_epoch(model, train_loader, device, epoch, lr)
 
-        ### EDIT: Checkpointing best model!
         if epoch % 2 == 0:
-            test_acc = evaluate(model, test_loader, device)
-            print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}, Test={test_acc:.4f}")
-            if test_acc > best_acc:
-                best_acc = test_acc
+            # Evaluate on VALIDATION set, completely blind to the Test set
+            val_acc = evaluate(model, val_loader, device)
+            print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}, Val={val_acc:.4f}")
+
+            # Save best model based ONLY on Validation performance
+            if val_acc > best_acc:
+                best_acc = val_acc
                 torch.save(model.state_dict(), "best_baseline_model.pth")
-                print(f" ---> Best baseline model saved with Test ACC: {best_acc:.4f}")
+                print(f" ---> Best baseline model saved with Val ACC: {best_acc:.4f}")
         else:
             print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}")
 
-    # --- FINAL EVALUATION ---
+    # --- FINAL EVALUATION ON TRUE TEST SET ---
     print("\n" + "="*60)
     print("BASELINE RESULTS (Standard ResNet50)")
     print("="*60)
 
-    ### EDIT: Load best model before testing
     print("Loading the best performing baseline model...")
     model.load_state_dict(torch.load("best_baseline_model.pth", weights_only=True))
 
+    # NOW we finally use test_data
     clear_loader = DataLoader(BaselineTestDataset(test_data.data, test_data.targets, tf_test, "clear"), batch_size=64)
     blur_loader  = DataLoader(BaselineTestDataset(test_data.data, test_data.targets, tf_test, "blur"), batch_size=64)
     sharp_loader = DataLoader(BaselineTestDataset(test_data.data, test_data.targets, tf_test, "sharp"), batch_size=64)
