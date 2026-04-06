@@ -273,16 +273,28 @@ if __name__ == "__main__":
     full_train_data = datasets.CIFAR10(root="./data", train=True, download=True)
     test_data = datasets.CIFAR10(root="./data", train=False, download=True)
 
-    subset_indices = torch.randperm(len(full_train_data))[:20000].tolist()
-    sub_data = full_train_data.data[subset_indices]
-    sub_targets = [full_train_data.targets[i] for i in subset_indices]
+    # --- NEW LEAK-FREE DATA SPLIT ---
+    # Shuffle all 50,000 training indices
+    shuffled_indices = torch.randperm(len(full_train_data)).tolist()
+    
+    # Grab 20k for training, and the next 5k for validation
+    train_indices = shuffled_indices[:20000]
+    val_indices = shuffled_indices[20000:25000]
 
-    ### EDIT: Passing both training and test fine transforms to handle dropout correctly ###
-    train_set = DualStreamDataset(sub_data, sub_targets, fine_tf_train, fine_tf_test, coarse_tf, fine_dropout_prob=0.5)
-    test_set = DualStreamDataset(test_data.data, test_data.targets, fine_tf_test, fine_tf_test, coarse_tf, fine_dropout_prob=0.0)
+    # Extract the actual images and labels based on indices
+    train_data = full_train_data.data[train_indices]
+    train_targets = [full_train_data.targets[i] for i in train_indices]
 
+    val_data = full_train_data.data[val_indices]
+    val_targets = [full_train_data.targets[i] for i in val_indices]
+
+    # Create Datasets
+    train_set = DualStreamDataset(train_data, train_targets, fine_tf_train, fine_tf_test, coarse_tf, fine_dropout_prob=0.5)
+    val_set = DualStreamDataset(val_data, val_targets, fine_tf_test, fine_tf_test, coarse_tf, fine_dropout_prob=0.0)
+    
+    # Create DataLoaders (Notice we don't need a test_loader for the training loop anymore!)
     train_loader = DataLoader(train_set, batch_size=32, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_set, batch_size=64, shuffle=False, num_workers=2)
+    val_loader = DataLoader(val_set, batch_size=64, shuffle=False, num_workers=2)
 
     model = DualBranchNet(num_classes=10).to(device)
 
@@ -293,15 +305,17 @@ if __name__ == "__main__":
     for epoch in range(1, 31):
         lr = 1e-4 if epoch <= 10 else 5e-5
         loss, train_acc = train_epoch(model, train_loader, device, epoch, lr)
+        
         if epoch % 2 == 0:
-            test_acc = evaluate(model, test_loader, device)
-            print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}, Test={test_acc:.4f}")
+            # Evaluate on VALIDATION set, completely blind to the Test set
+            val_acc = evaluate(model, val_loader, device)
+            print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}, Val={val_acc:.4f}")
 
-            # EDIT 3: Save the best model!
-            if test_acc > best_acc:
-                best_acc = test_acc
+            # Save the best model based on Validation performance!
+            if val_acc > best_acc:
+                best_acc = val_acc
                 torch.save(model.state_dict(), "best_model.pth")
-                print(f" ---> Best model saved with Test ACC: {best_acc:.4f}")
+                print(f" ---> Best model saved with Val ACC: {best_acc:.4f}")
         else:
             print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}")
 
