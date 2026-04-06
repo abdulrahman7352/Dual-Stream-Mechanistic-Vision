@@ -232,27 +232,69 @@ The baseline is a standard ResNet50 trained under identical conditions (same dat
 
 | Condition | Accuracy | Description |
 |-----------|----------|-------------|
-| **Clear** | **95.04%** | Standard, unmodified images |
-| **Blur** | **15.25%** | Heavy Gaussian blur (radius=3) |
-| **Sharp** | **82.63%** | FFT high-pass filter — edges only |
+| **Clear** | **94.72%** | Standard, unmodified images |
+| **Blur** | **17.87%** | Heavy Gaussian blur (radius=3) |
+| **Sharp** | **81.05%** | FFT high-pass filter — edges only |
 
 ### Per-Class Classification Report (Blur Condition, Radius=3)
 
 | Class | Precision | Recall | F1-Score |
 |-------|-----------|--------|----------|
-| airplane | 0.21 | 0.71 | 0.32 |
-| automobile | 0.00 | 0.00 | 0.00 |
-| bird | 0.12 | 0.75 | 0.21 |
-| cat | 0.27 | 0.06 | 0.10 |
-| deer | 0.00 | 0.00 | 0.00 |
-| dog | 0.10 | 0.01 | 0.01 |
+| airplane | 0.18 | 0.71 | 0.29 |
+| automobile | 0.50 | 0.03 | 0.05 |
+| bird | 0.17 | 0.22 | 0.19 |
+| cat | 0.17 | 0.60 | 0.27 |
+| deer | 0.15 | 0.01 | 0.01 |
+| dog | 0.16 | 0.17 | 0.16 |
 | frog | 0.00 | 0.00 | 0.00 |
 | horse | 0.00 | 0.00 | 0.00 |
-| ship | 1.00 | 0.00 | 0.00 |
+| ship | 0.52 | 0.05 | 0.09 |
 | truck | 0.00 | 0.00 | 0.00 |
-| **Overall** | **0.17** | **0.15** | **0.06** |
 
-**Observation:** Under blur, the baseline model enters a **panic state** — it collapses to predicting only `airplane` and `bird` for almost every image regardless of the true label. This is a classic symptom of a texture-biased CNN losing its anchor when high-frequency features are destroyed.
+---
+
+## Overall Performance
+
+- **Accuracy:** 0.18  
+- **Macro Avg (Precision / Recall / F1):** 0.18 / 0.18 / 0.11  
+- **Weighted Avg (Precision / Recall / F1):** 0.18 / 0.18 / 0.11  
+
+---
+
+## Observations
+
+- The baseline model exhibits **severe performance degradation under blur**, with overall accuracy dropping to **18%**.
+
+- The model shows **extreme prediction bias**, disproportionately favoring a few classes:
+  - **airplane (recall = 0.71)**
+  - **cat (recall = 0.60)**  
+
+- Most classes collapse completely:
+  - **frog, horse, truck → F1 = 0.00**
+  - **deer → near-zero recall (0.01)**  
+
+- **automobile** and **ship** retain moderate precision but extremely poor recall, indicating unstable and inconsistent predictions.
+
+---
+
+## Failure Mode Analysis
+
+The model enters a **degenerate / collapse regime** under blur:
+
+- It loses access to **high-frequency texture features**, which standard CNNs heavily rely on.
+- As a result, it defaults to predicting a **small subset of dominant classes**, ignoring true class diversity.
+- This behavior reflects a **strong texture bias** and weak robustness to distribution shifts.
+
+---
+
+## Key Insight
+
+This result highlights a fundamental limitation of conventional CNNs:
+
+> When texture cues are removed (e.g., via blur), the model fails to rely on **global shape representations**, leading to catastrophic generalization failure.
+
+
+---
 
 ### Validation Images
 
