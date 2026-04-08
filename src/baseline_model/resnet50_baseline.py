@@ -112,10 +112,8 @@ def get_baseline_model(num_classes=10): ### EDIT: Changed default to 10 for CIFA
 # ------------------------------------------------------------
 # Training Loop
 # ------------------------------------------------------------
-def train_epoch(model, loader, device, epoch, lr=1e-4): ### EDIT: Added LR parameter
+def train_epoch(model, loader, device, epoch, opt): 
     model.train()
-    ### EDIT: Matched weight_decay to the Mechanistic model for a fair comparison
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=5e-3)
     loss_fn = nn.CrossEntropyLoss()
 
     total_loss = 0
@@ -129,7 +127,6 @@ def train_epoch(model, loader, device, epoch, lr=1e-4): ### EDIT: Added LR param
         loss = loss_fn(logits, y)
         loss.backward()
 
-        ### EDIT: Added Gradient Clipping to match Mechanistic Model
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         opt.step()
@@ -139,6 +136,7 @@ def train_epoch(model, loader, device, epoch, lr=1e-4): ### EDIT: Added LR param
         total += y.size(0)
 
     return total_loss / len(loader), correct / total
+
 
 def evaluate(model, loader, device):
     model.eval()
@@ -182,7 +180,7 @@ if __name__ == "__main__":
     # --- NEW LEAK-FREE DATA SPLIT (Matches Mechanistic Model) ---
     # Shuffle all 50,000 training indices
     shuffled_indices = torch.randperm(len(full_train_data)).tolist()
-
+    
     # Grab 20k for training, and the next 5k for validation
     train_indices = shuffled_indices[:20000]
     val_indices = shuffled_indices[20000:25000]
@@ -197,7 +195,7 @@ if __name__ == "__main__":
     # Create Datasets
     train_set = BaselineDataset(train_data, train_targets, tf_train)
     val_set = BaselineDataset(val_data, val_targets, tf_test) # Validation uses clean test transforms
-
+    
     # Create DataLoaders
     train_loader = DataLoader(train_set, batch_size=32, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_set, batch_size=64, shuffle=False, num_workers=2)
@@ -205,17 +203,28 @@ if __name__ == "__main__":
     model = get_baseline_model(num_classes=10).to(device)
 
     print("=== TRAINING BASELINE RESNET50 ===")
+   
     best_acc = 0.0
 
+    # Define optimizer ONCE outside the loop
+    opt = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=5e-3)
+
     for epoch in range(1, 31):
-        lr = 1e-4 if epoch <= 10 else 5e-5
-        loss, train_acc = train_epoch(model, train_loader, device, epoch, lr)
+        # Manually update the learning rate
+        current_lr = 1e-4 if epoch <= 10 else 5e-5
+        for param_group in opt.param_groups:
+            param_group['lr'] = current_lr
+
+        # Pass opt into the function
+        loss, train_acc = train_epoch(model, train_loader, device, epoch, opt)
+        
+        # ... (keep the rest of your validation logic the same)
 
         if epoch % 2 == 0:
             # Evaluate on VALIDATION set, completely blind to the Test set
             val_acc = evaluate(model, val_loader, device)
             print(f"Epoch {epoch}: Loss={loss:.4f}, Train={train_acc:.4f}, Val={val_acc:.4f}")
-
+            
             # Save best model based ONLY on Validation performance
             if val_acc > best_acc:
                 best_acc = val_acc
@@ -230,7 +239,7 @@ if __name__ == "__main__":
     print("="*60)
 
     print("Loading the best performing baseline model...")
-    model.load_state_dict(torch.load("best_baseline_model.pth", weights_only=True))
+    model.load_state_dict(torch.load("best_baseline_model.pth", map_location=device))
 
     # NOW we finally use test_data
     clear_loader = DataLoader(BaselineTestDataset(test_data.data, test_data.targets, tf_test, "clear"), batch_size=64)
@@ -242,5 +251,6 @@ if __name__ == "__main__":
     acc_sharp = evaluate(model, sharp_loader, device)
 
     print(f"CLEAR ACC: {acc_clear:.4f}")
-    print(f"BLUR  ACC: {acc_blur:.4f}  <- Compare this to your Mechanistic Model")
+    print(f"BLUR  ACC: {acc_blur:.4f} ")
     print(f"SHARP ACC: {acc_sharp:.4f}")
+   
