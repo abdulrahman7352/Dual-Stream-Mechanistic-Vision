@@ -32,72 +32,72 @@ def get_baseline_preds(model, loader, device):
     return all_labels, all_preds
 
 # ------------------------------------------------------------
-# 2. Run the Validations (Baseline CM)
+# 2. Run the Validations  Baseline CM
 # ------------------------------------------------------------
-# Make sure we use the correct weights filename that your script just saved
-print("\n" + "="*60)
-print("RUNNING BASELINE VALIDATIONS & COMBINED PLOTS")
-print("="*60)
+if __name__ == "__main__":    
+    # Make sure we use the correct weights filename that your script just saved
+    print("\n" + "="*60)      
+    print("RUNNING BASELINE VALIDATIONS") 
+    print("="*60)             
 
-# 1. Load the Best Baseline Model
-model.load_state_dict(torch.load("best_baseline_model.pth", weights_only=True))
-model.eval()
+    # 1. Load the Best Baseline Model
+    model.load_state_dict(torch.load("best_baseline_model.pth", map_location=device))
+    model.eval()
+    
+    classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    
+    # --- TEST A: PSYCHOMETRIC CURVE ---
+    print("\n--- Generating Psychometric Curve ---")
+    blur_radii = [1, 2, 3, 4, 5, 6, 7, 8]
+    baseline_accuracies = []
 
-classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    for r in blur_radii:
+        test_dataset = DynamicBaselineBlurDataset(test_data.data, test_data.targets, tf_test, blur_radius=r)
+        test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=2)
+        
+        acc = evaluate(model, test_loader, device)
+        baseline_accuracies.append(acc)
+        print(f"Baseline Blur Radius {r}: Accuracy = {acc:.4f}")
+    
+    # Plotting Baseline Curve Only
+    plt.figure(figsize=(8, 5))
+    plt.plot(blur_radii, baseline_accuracies, marker='X', linestyle='-', color='red', label='Baseline (Standard ResNet50)')
+    
+    plt.title('Psychometric Degradation: Baseline')
+    plt.xlabel('Gaussian Blur Radius')
+    plt.ylabel('Accuracy')
+    plt.ylim(0, 1.0)
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('psychometric_curve.png')
+    print("-> Saved 'psychometric_curve.png'")
+    plt.show()
+    
 
-# --- TEST A:PSYCHOMETRIC CURVE ---
-print("\n--- Generating Combined Psychometric Curve ---")
-blur_radii = [1, 2, 3, 4, 5, 6, 7, 8]
-baseline_accuracies = []
-
-
-for r in blur_radii:
-    test_dataset = DynamicBaselineBlurDataset(test_data.data, test_data.targets, tf_test, blur_radius=r)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=2)
-
-    # We can reuse your existing evaluate() function since baseline takes 1 input (x, y)
-    acc = evaluate(model, test_loader, device)
-    baseline_accuracies.append(acc)
-    print(f"Baseline Blur Radius {r}: Accuracy = {acc:.4f}")
-
-# Plotting Curve
-plt.figure(figsize=(8, 5))
-plt.plot(blur_radii, baseline_accuracies, marker='X', linestyle='--', color='red', label='Baseline (Standard ResNet50)')
-
-plt.title('Psychometric Degradation: Baseline')
-plt.xlabel('Gaussian Blur Radius')
-plt.ylabel('Accuracy')
-plt.ylim(0, 1.0)
-plt.grid(True)
-plt.legend()
-plt.savefig('psychometric_curve_baseline.png')
-print("-> Saved 'psychometric_curve_baseline.png'")
-plt.show()
-
-# --- TEST B: BASELINE CONFUSION MATRIX (At Blur=3) ---
-print("\n--- Generating Baseline Confusion Matrix for Blur Radius 3 ---")
-cm_dataset = DynamicBaselineBlurDataset(test_data.data, test_data.targets, tf_test, blur_radius=3)
-cm_loader = DataLoader(cm_dataset, batch_size=128, shuffle=False, num_workers=2)
-
-y_true, y_pred = get_baseline_preds(model, cm_loader, device)
-
-print("\nBaseline Classification Report (Precision, Recall, F1-Score):")
-report = classification_report(y_true, y_pred, target_names=classes)
-print(report)
-
-cm = confusion_matrix(y_true, y_pred)
-
-plt.figure(figsize=(10, 8))
-# Using a Red color map to easily distinguish it from your blue Mechanistic matrix
-sns.heatmap(cm, annot=True, fmt='d', cmap='Reds', xticklabels=classes, yticklabels=classes)
-plt.title('Confusion Matrix (Baseline ResNet50 on Blurred Images)')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.savefig('confusion_matrix_baseline.png')
-print("-> Saved 'confusion_matrix_baseline.png'")
-plt.show()
-
-print("\nAll Validations Complete! Check your folder for the generated images.")
+    # --- TEST B: BASELINE CONFUSION MATRIX (At Blur=3) ---
+    print("\n--- Generating Baseline Confusion Matrix for Blur Radius 3 ---")
+    cm_dataset = DynamicBaselineBlurDataset(test_data.data, test_data.targets, tf_test, blur_radius=3)
+    cm_loader = DataLoader(cm_dataset, batch_size=128, shuffle=False, num_workers=2)
+    
+    y_true, y_pred = get_baseline_preds(model, cm_loader, device)
+    
+    print("\nBaseline Classification Report (Precision, Recall, F1-Score):")
+    report = classification_report(y_true, y_pred, target_names=classes)
+    print(report)
+    
+    cm = confusion_matrix(y_true, y_pred)
+    
+    plt.figure(figsize=(10, 8))
+    # Using a Red color map to easily distinguish it from your blue Mechanistic matrix
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Reds', xticklabels=classes, yticklabels=classes)
+    plt.title('Confusion Matrix (Baseline ResNet50 on Blurred Images)')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.savefig('confusion_matrix_baseline.png')
+    print("-> Saved 'confusion_matrix_baseline.png'")
+    plt.show()
+    
+    print("\nAll Validations Complete! Check your folder for the generated images.")
 
 
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         return model
 
     model = get_baseline_model(num_classes=10).to(device)
-    model.load_state_dict(torch.load("best_baseline_model.pth", map_location=device, weights_only=True))
+    model.load_state_dict(torch.load("best_baseline_model.pth", map_location=device))
 
     # In ResNet50, the last convolutional layer is layer4[-1]
     target_layer = model.layer4[-1]
