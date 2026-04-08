@@ -1,27 +1,29 @@
-# Standard Library
-import os
-import argparse
-import math
-import random
-
-# Third-Party Libraries
+import random, math
 import numpy as np
 from PIL import Image, ImageFilter
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix
 
-# PyTorch Core
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset, Subset
-
-# Torchvision
-import torchvision
-from torchvision import datasets, models
+from torch.utils.data import DataLoader, Dataset
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
+from torchvision import models
+from tqdm import tqdm
+import torch.utils.data as data
 import torchvision.transforms as T
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
+from torchvision import datasets
+import torchvision.transforms as T
+from sklearn.metrics import confusion_matrix, classification_report
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -207,10 +209,8 @@ class DualStreamTestDataset(Dataset):
 # ------------------------------------------------------------
 # Training & Evaluation
 # ------------------------------------------------------------
-def train_epoch(model, loader, device, epoch, lr=1e-4):
+def train_epoch(model, loader, device, epoch, opt):
     model.train()
-    # EDIT 1: Increased weight_decay from 1e-4 to 5e-3 to prevent overfitting
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=5e-3)
     loss_fn = nn.CrossEntropyLoss()
     total_loss = 0
     correct = 0
@@ -302,9 +302,19 @@ if __name__ == "__main__":
 
     best_acc = 0.0 # Track the best accuracy
 
+    # Define optimizer ONCE outside the loop
+    opt = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=5e-3)
+
     for epoch in range(1, 31):
-        lr = 1e-4 if epoch <= 10 else 5e-5
-        loss, train_acc = train_epoch(model, train_loader, device, epoch, lr)
+        # Determine the learning rate for this epoch
+        current_lr = 1e-4 if epoch <= 10 else 5e-5
+        
+        # Manually update the learning rate in the optimizer
+        for param_group in opt.param_groups:
+            param_group['lr'] = current_lr
+
+        # Pass the optimizer into the train_epoch function
+        loss, train_acc = train_epoch(model, train_loader, device, epoch, opt)
         
         if epoch % 2 == 0:
             # Evaluate on VALIDATION set, completely blind to the Test set
@@ -323,7 +333,7 @@ if __name__ == "__main__":
 
     # EDIT 4: Load the best model before testing!
     print("Loading the best performing model for final evaluation...")
-    model.load_state_dict(torch.load("best_model.pth", weights_only=True))
+    model.load_state_dict(torch.load("best_model.pth", map_location=device))
 
     clear_loader = DataLoader(DualStreamTestDataset(test_data.data, test_data.targets, fine_tf_test, coarse_tf, "clear"), batch_size=64)
     blur_loader = DataLoader(DualStreamTestDataset(test_data.data, test_data.targets, fine_tf_test, coarse_tf, "blur"), batch_size=64)
@@ -332,4 +342,3 @@ if __name__ == "__main__":
     print(f"CLEAR ACC: {evaluate(model, clear_loader, device):.4f}")
     print(f"BLUR  ACC: {evaluate(model, blur_loader, device):.4f} <- Goal: Robustness")
     print(f"SHARP ACC: {evaluate(model, sharp_loader, device):.4f}")
-
