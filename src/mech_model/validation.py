@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     # Load the best weights
     model = DualBranchNet(num_classes=10).to(device)
-    model.load_state_dict(torch.load("best_model.pth", weights_only=True))
+    model.load_state_dict(torch.load("best_model.pth", map_location=device))
     model.eval()
 
     # --- TEST A: PSYCHOMETRIC CURVE ---
@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     # Load the Mechanistic Model
     model = DualBranchNet(num_classes=10).to(device)
-    model.load_state_dict(torch.load("best_model.pth", map_location=device, weights_only=True))
+    model.load_state_dict(torch.load("best_model.pth", map_location=device))
     model.eval()
 
     # Target the final convolutional layer in the Fusion block
