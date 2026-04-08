@@ -1,4 +1,3 @@
----
 
 # CIFAR-100 Results
 
