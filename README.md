@@ -1,7 +1,7 @@
 # Dual-Stream Mechanistic Vision Model
 
 <p align="center">
-  <img src="assets/mit_project_model_img_arch.jpg" alt="Model Architecture" width="100%"/>
+  <img src="assets/mit_project_model_img_adv_2.jpg" alt="Model Architecture" width="100%"/>
 </p>
 
 > A neuroscience-inspired deep learning model that simulates the **Magnocellular (coarse)** and **Parvocellular (fine)** visual pathways of the human brain, connected through a **ConvLSTM-based Predictive Coding** loop — trained and evaluated on CIFAR-10.
